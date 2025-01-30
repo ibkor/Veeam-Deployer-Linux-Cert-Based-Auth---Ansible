@@ -3,6 +3,13 @@
   hosts: linux-servers  
   become: yes  
   tasks:
+    - name: Gather facts about the system
+      setup:
+        gather_subset:
+          - '!all'
+          - '!min'
+          - 'distribution'
+
     - name: Create temporary directory for Veeam files
       file:
         path: /tmp/VeeamUpload
@@ -27,11 +34,19 @@
         dest: /tmp/VeeamUpload/
         mode: '0644'
 
-    - name: Install Veeam Plugin RPM
+    - name: Install Veeam Plugin RPM on RHEL/CentOS
       yum:
         name: "/tmp/VeeamUpload/veeamdeployment-12.2.0.334-1.x86_64.rpm"
         state: present
         disable_gpg_check: yes
+      when: ansible_facts['distribution'] in ['RedHat', 'CentOS', 'Rocky', 'AlmaLinux']
+
+    - name: Install Veeam Plugin RPM on SUSE
+      zypper:
+        name: "/tmp/VeeamUpload/veeamdeployment-12.2.0.334-1.x86_64.rpm"
+        state: present
+        disable_gpg_check: yes
+      when: ansible_facts['distribution'] in ['SLES', 'openSUSE Leap', 'openSUSE']
 
     - name: Verify if Veeam Plugin is installed
       command: rpm -q veeamdeployment
@@ -56,3 +71,8 @@
       file:
         path: /tmp/VeeamUpload
         state: absent
+
+    - name: Debug - Show distribution information
+      debug:
+        msg: "Detected distribution: {{ ansible_facts['distribution'] }}"
+      when: ansible_facts['distribution'] is defined
