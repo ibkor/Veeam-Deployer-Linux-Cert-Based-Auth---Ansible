@@ -12,7 +12,7 @@ This playbook automates the installation and configuration of Veeam Plugin on Li
    - Client certificate (`client-cert.pem`)
   
 These files can be generated on VBR Server by running below PowerShell command (adjust validity if needed):
- 'Generate-VBRBackupServerDeployerKit -ExportPath "Path" -ValidityPeriodInHours 48 '
+ `Generate-VBRBackupServerDeployerKit -ExportPath "Path" -ValidityPeriodInHours 48` 
 
 
 2. Ensure Ansible is installed on your control machine:
