@@ -1,0 +1,58 @@
+---
+- name: Install Veeam Deployer and Configure Certificates
+  hosts: linux-servers  
+  become: yes  
+  tasks:
+    - name: Create temporary directory for Veeam files
+      file:
+        path: /tmp/VeeamUpload
+        state: directory
+        mode: '0755'
+
+    - name: Copy Veeam Plugin RPM to target
+      copy:
+        src: "{{ playbook_dir }}/files/veeamdeployment-12.2.0.334-1.x86_64.rpm"
+        dest: /tmp/VeeamUpload/
+        mode: '0644'
+
+    - name: Copy server certificate to target
+      copy:
+        src: "{{ playbook_dir }}/files/server-cert.p12"
+        dest: /tmp/VeeamUpload/
+        mode: '0644'
+
+    - name: Copy client certificate to target
+      copy:
+        src: "{{ playbook_dir }}/files/client-cert.pem"
+        dest: /tmp/VeeamUpload/
+        mode: '0644'
+
+    - name: Install Veeam Plugin RPM
+      yum:
+        name: "/tmp/VeeamUpload/veeamdeployment-12.2.0.334-1.x86_64.rpm"
+        state: present
+        disable_gpg_check: yes
+
+    - name: Verify if Veeam Plugin is installed
+      command: rpm -q veeamdeployment
+      register: plugin_install_check
+      ignore_errors: yes  
+
+    - name: Check if installation was successful
+      fail:
+        msg: "Veeam Plugin installation failed or the package is not found"
+      when: plugin_install_check.rc != 0
+
+    - name: Install server certificate
+      command: /opt/veeam/deployment/veeamdeploymentsvc --install-server-certificate /tmp/VeeamUpload/server-cert.p12
+
+    - name: Install client certificate
+      command: /opt/veeam/deployment/veeamdeploymentsvc --install-certificate /tmp/VeeamUpload/client-cert.pem
+
+    - name: Restart the Veeam deployment service
+      command: /opt/veeam/deployment/veeamdeploymentsvc --restart
+
+    - name: Cleanup temporary files
+      file:
+        path: /tmp/VeeamUpload
+        state: absent
